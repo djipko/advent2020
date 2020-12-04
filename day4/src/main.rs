@@ -14,6 +14,59 @@ enum Field {
     cid(String),
 }
 
+impl Field {
+    fn is_valid(&self) -> bool {
+        match self {
+            Field::byr(data) => data
+                .parse::<u32>()
+                .map_or(false, |year| year >= 1920 && year <= 2002),
+            Field::iyr(data) => data
+                .parse::<u32>()
+                .map_or(false, |year| year >= 2010 && year <= 2020),
+            Field::eyr(data) => data
+                .parse::<u32>()
+                .map_or(false, |year| year >= 2020 && year <= 2030),
+            Field::hgt(data) => {
+                let re = Regex::new(r"(\d+)(in|cm)").unwrap();
+                if let Some(caps) = re.captures(data) {
+                    if let Some(unit) = caps.get(2) {
+                        match unit.as_str() {
+                            "cm" => caps.get(1).map_or(false, |hs| {
+                                hs.as_str()
+                                    .parse::<u32>()
+                                    .map_or(false, |h| h >= 150 && h <= 193)
+                            }),
+                            "in" => caps.get(1).map_or(false, |hs| {
+                                hs.as_str()
+                                    .parse::<u32>()
+                                    .map_or(false, |h| h >= 59 && h <= 76)
+                            }),
+                            _ => false,
+                        }
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            }
+            Field::hcl(data) => {
+                let re = Regex::new(r"#[a-f0-9]{6}$").unwrap();
+                re.is_match(data)
+            }
+            Field::ecl(data) => {
+                let re = Regex::new(r"^(amb|blu|brn|gry|grn|hzl|oth)$").unwrap();
+                re.is_match(data)
+            }
+            Field::pid(data) => {
+                let re = Regex::new(r"^[0-9]{9}$").unwrap();
+                re.is_match(data)
+            }
+            _ => true,
+        }
+    }
+}
+
 #[derive(Debug)]
 struct Passport {
     fields: Vec<Field>,
@@ -28,7 +81,6 @@ impl Passport {
     }
 
     fn parse(line: &String) -> Option<Passport> {
-        println!("parsing: {}", line);
         let re = Regex::new(r"(byr|iyr|eyr|hgt|hcl|ecl|pid|cid):([#a-z0-9]+)").ok()?;
         let fields = re
             .captures_iter(&line)
@@ -60,6 +112,10 @@ impl Passport {
             != 0;
         (self.fields.len() == 7 && !cit) || self.fields.len() == 8
     }
+
+    fn is_valid2(&self) -> bool {
+        self.is_valid() && self.fields.iter().all(|fld| fld.is_valid())
+    }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -73,6 +129,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!(
         "Valid: {}",
         passports.iter().filter(|p| p.is_valid()).count()
+    );
+    println!(
+        "Valid2: {}",
+        passports.iter().filter(|p| p.is_valid2()).count()
     );
     Ok(())
 }
