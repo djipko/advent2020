@@ -50,22 +50,33 @@ impl BagRules {
         })
     }
 
-    fn count_bags(&self, needle: String) -> usize {
+    fn count_bags(&self, needle: &str) -> usize {
         let all_containing = self.rules.keys();
         all_containing
-            .filter(|start| self.contains(start, &needle))
+            .filter(|start| self.contains(start, needle))
             .count()
     }
 
     fn contains(&self, from: &str, to: &str) -> bool {
-        if let Some(contained) = self.rules.get(from) {
-            if contained.iter().filter(|b| b.color == to).count() > 0 {
-                true
-            } else {
-                contained.iter().any(|b| self.contains(&b.color, to))
+        match self.rules.get(from) {
+            Some(contained) => {
+                if contained.iter().filter(|b| b.color == to).count() > 0 {
+                    true
+                } else {
+                    contained.iter().any(|b| self.contains(&b.color, to))
+                }
             }
-        } else {
-            false
+            None => false,
+        }
+    }
+
+    fn count_containing(&self, from: &str) -> usize {
+        match self.rules.get(from) {
+            Some(contained) => contained
+                .iter()
+                .map(|b| b.count + b.count * self.count_containing(&b.color))
+                .sum(),
+            None => 0,
         }
     }
 }
@@ -76,9 +87,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let input = buffer.split("\n").collect();
     let rules = BagRules::parse_rules(input).ok_or("Failed parsing")?;
     //println!("{:#?}", rules);
-    println!(
-        "Ways to hold: {}",
-        rules.count_bags(String::from("shiny gold"))
-    );
+    println!("Ways to hold: {}", rules.count_bags("shiny gold"));
+    println!("Contained in: {}", rules.count_containing("shiny gold"));
     Ok(())
 }
