@@ -4,7 +4,7 @@ use std::error::Error;
 use std::io::{self, Read};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-struct Field(i32, i32, i32);
+struct Field(i32, i32, i32, i32);
 
 #[derive(Debug)]
 struct Grid {
@@ -21,7 +21,7 @@ impl Grid {
                     .chars()
                     .enumerate()
                     .filter(|(_, cell)| *cell == '#')
-                    .map(move |(col, _)| Field(col as i32, row as i32, 0))
+                    .map(move |(col, _)| Field(col as i32, row as i32, 0, 0))
             })
             .flatten()
             .collect::<HashSet<Field>>();
@@ -46,9 +46,15 @@ impl Grid {
             .cloned()
             .collect();
         //println!("new_active: {:?}", new_active);
-        let still_active = self.fields.iter().filter(|f| {
-            let active_n = f.neighbours().intersection(&self.fields).count();
-            active_n ==2 || active_n == 3}).cloned().collect();
+        let still_active = self
+            .fields
+            .iter()
+            .filter(|f| {
+                let active_n = f.neighbours().intersection(&self.fields).count();
+                active_n == 2 || active_n == 3
+            })
+            .cloned()
+            .collect();
         //println!("still_active: {:?}", still_active);
         self.fields = new_active.union(&still_active).cloned().collect();
     }
@@ -59,9 +65,10 @@ impl Field {
         iproduct!(
             vec![self.0 - 1, self.0, self.0 + 1],
             vec![self.1 - 1, self.1, self.1 + 1],
-            vec![self.2 - 1, self.2, self.2 + 1]
+            vec![self.2 - 1, self.2, self.2 + 1],
+            vec![self.3 - 1, self.3, self.3 + 1]
         )
-        .map(|(x, y, z)| Field(x, y, z))
+        .map(|(x, y, z, w)| Field(x, y, z, w))
         .filter(|f| f != self)
         .collect()
     }
