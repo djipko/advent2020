@@ -63,51 +63,68 @@ impl Rules {
     }
 
     fn matches_rule_rec<'a>(&self, msg: &'a str, rule_id: usize) -> (bool, &'a str) {
+        //if msg.len() == 0 {
+        //    println!("Reached end for {}", rule_id);
+        //    return (true, msg)
+        //}
+        //if recc >= 50 { return (false, "") }
         if let Some(rule) = self.rules.get(&rule_id) {
             println!("Matching {}: {:?} to {}", rule_id, rule, msg);
             match rule {
                 Rule::Char(s) => {
                     let ret = (s == &msg[0..1], &msg[1..]);
-                    println!("Returning {} -> {:?}", rule_id, ret);
+                    println!("Returning {}: -> {:?} for {}", rule_id, ret, &msg);
                     ret
                 }
                 Rule::RuleList(options) => {
-                    let matched = options
-                        .iter()
-                        .map(|option| {
-                            let mut rest = msg;
-                            let mut mch = true;
-                            for rid in option {
-                                let ret = self.matches_rule_rec(rest, *rid);
-                                mch = ret.0;
-                                rest = ret.1;
-
-                                if !mch {
-                                    break;
-                                }
+                    let mut matched = None;
+                    for option in options {
+                        let mut rest = msg;
+                        let mut mch = false;
+                        for rid in option {
+                            if rest.len() == 0 && mch {
+                                println!("Hitting con branch on {} {}", rule_id, msg);
+                                mch = false;
+                                break;
                             }
-                            (mch, rest)
-                        })
-                        .filter(|(m, _)| *m)
-                        .nth(0);
+                            let ret = self.matches_rule_rec(rest, *rid);
+                            mch = ret.0;
+                            rest = ret.1;
+
+                            if !mch {
+                                break;
+                            }
+                        }
+                        if mch {
+                            matched = Some((mch, rest));
+                            break;
+                        };
+                    }
+
                     let ret = if let Some((m, rest)) = matched {
                         (m, rest)
                     } else {
-                        (false, "")
+                        (false, msg)
                     };
 
-                    println!("Returning {} -> {:?}", rule_id, ret);
+                    println!("Returning {}: -> {:?}", rule_id, ret);
                     ret
                 }
             }
         } else {
-            (false, "")
+            panic!("Invalid rule {}", rule_id);
         }
     }
 
     fn matches_rule(&self, msg: &str, rule_id: usize) -> bool {
         let ret = self.matches_rule_rec(msg, rule_id);
-        ret.0 && ret.1.len() == 0
+        if (ret.0 && ret.1.len() == 0) {
+            println!("Full match: {}", msg);
+            true
+        } else {
+            println!("Failed Full match: {}", msg);
+            false
+        }
     }
 }
 
